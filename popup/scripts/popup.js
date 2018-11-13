@@ -12,23 +12,20 @@
     var input_Height = document.querySelector("#input_Height");
 
     var clearButton = document.querySelector("#buttonClear");
-    var changeButton = document.querySelector("#buttonConvert");
+    var convertButton = document.querySelector("#buttonConvert");
 
-    // function sendSearchMessage(tabs) {
+    function sendMessageToContentScript(tabs) {
+        //現在表示中のタブへメッセージを送信
+        //tabs[0]というのがカレントタブか？
+        browser.tabs.sendMessage(tabs[0].id, { command: "getSelectedString" });
+    }
 
-    //     // let textArea_From = document.querySelector("#textArea_From");
-    //     let string_From = textArea_From.value;
+    let qiitaImagePattern = /!\[.*?\]\(.*?\)/;//全体のパターン
+    let qiitaImageUrlPattern = /(?<=^\!\[.*?\]\().*?(?=\s|\))/;
+    let qiitaImageTitlePattern = /(?<=").*?(?=")/;
+    let qiitaAltPattern = /(?<=\!\[).*?(?=\]\(.*?\))/;
 
-    //     // localStorage.setItem('target', string_From);
-
-    //     //現在表示中のタブへメッセージを送信
-    //     //tabs[0]というのがカレントタブか？
-    //     browser.tabs.sendMessage(tabs[0].id, { command: "getSelectedString", target: string_From });
-    // }
-
-    let qiitaImagePattern = /!\[.+\]\(.+?\)/;
-    let qiitaImageUrlPattern = /(?<=\!\[.+?\]\().+(?=\))/;
-    let qiitaAltPattern = /(?<=\!\[).+?(?=\]\(.+\))/;
+    let cantConvertMessage = "すみません。変換できませんでした。";
 
     function ConvertQiitaToHTML(text_From) {
         let text_To = "";
@@ -38,100 +35,120 @@
         if (qiitaImageString) {
             //そこからURLを取得する。
             let imageUrl = qiitaImageUrlPattern.exec(qiitaImageString);
-
+            if (!imageUrl) {
+                imageUrl = "";
+            }
+            //タイトルを取得する。
+            let title = qiitaImageTitlePattern.exec(qiitaImageString);
+            if (!title) {
+                title = "";
+            }
             //代替文字列を取得する。
-            let altText=qiitaAltPattern.exec(qiitaImageString);
-
+            let altText = qiitaAltPattern.exec(qiitaImageString);
+            if (!altText) {
+                altText = "";
+            }
             let width = input_Width.value;
             let height = input_Height.value;
 
-
-            if (width && height) {
-                text_To = `<img src="${imageUrl}" alt="${altText}" width="${width}" height="${height}" >`;
-            }
-            else if (width && !height) {
-                text_To = `<img src="${imageUrl}" alt="${altText}" width="${width}" >`;
-            }
-            else if (!width && height) {
-                text_To = `<img src="${imageUrl}" alt="${altText}" height="${height}" >`;
-            }
-            else {
-                text_To = `<img src="${imageUrl}" alt="${altText}" >`;
-            }
+            text_To = `<img src="${imageUrl}" title="${title}" alt="${altText}" width="${width}" height="${height}" >`;
         }
         else {
-            text_To = "It does not seems to be Qiita style image description.\nPlease check again.";
+            text_To = cantConvertMessage;
         }
-
 
         return text_To;
     }
 
 
+    //現在の入力状態をLocalStorageに入れる
+    function SetToLocalStorage() {
+        localStorage.setItem('textArea_From', textArea_From.value);
+        localStorage.setItem('textArea_To', textArea_To.value);
+        localStorage.setItem('input_Width', input_Width.value);
+        localStorage.setItem('input_Height', input_Height.value);
+    }
 
 
-    //Set Eventhandler to 'Search' button.
+    //Set Eventhandler to 'Clear' button.
     clearButton.addEventListener('click', (e) => {
         textArea_From.value = "";
         textArea_To.value = "";
+
+        SetToLocalStorage();
     });
 
-    //Set Eventhandler to 'Change' button.
-    changeButton.addEventListener('click', (e) => {
-        let converted = ConvertQiitaToHTML(textArea_From.value);
-        textArea_To.value = converted;
-        localStorage.setItem('textArea_To',textArea_To.value);
+    //Set Eventhandler to 'Convert' button.
+    convertButton.addEventListener('click', (e) => {
+        textArea_To.value = ConvertQiitaToHTML(textArea_From.value);
+        SetToLocalStorage();
     });
 
     // let textArea = document.querySelector("#textAreaTarget");
     textArea_From.addEventListener('keyup', (e) => {
         if (e.keyCode === 13) {
-            let converted = ConvertQiitaToHTML(textArea_From.value);
-            textArea_To.value = converted;
-            localStorage.setItem('textArea_To',textArea_To.value)
+            textArea_To.value = ConvertQiitaToHTML(textArea_From.value);
+            SetToLocalStorage();
         }
-
-        localStorage.setItem('textArea_From',textArea_From.value);
     });
-    textArea_From.addEventListener('focus',(e)=>{
+    textArea_From.addEventListener('focus', (e) => {
         textArea_From.select();
     });
 
-    textArea_To.addEventListener('focus',(e)=>{
+    textArea_To.addEventListener('focus', (e) => {
         textArea_To.select();
     });
 
     input_Width.addEventListener('keyup', (e) => {
         if (e.keyCode === 13) {
-            let converted = ConvertQiitaToHTML(textArea_From.value);
-            textArea_To.value = converted;
-            localStorage.setItem('textArea_To',textArea_To.value)
+            textArea_To.value = ConvertQiitaToHTML(textArea_From.value);
+            SetToLocalStorage();
         }
 
-        localStorage.setItem('input_Width',input_Width.value)
     });
-    input_Width.addEventListener('focus',(e)=>{
+    input_Width.addEventListener('focus', (e) => {
         input_Width.select();
     });
 
     input_Height.addEventListener('keyup', (e) => {
         if (e.keyCode === 13) {
-            let converted = ConvertQiitaToHTML(textArea_From.value);
-            textArea_To.value = converted;
-            localStorage.setItem('textArea_To',textArea_To.value)
+            textArea_To.value = ConvertQiitaToHTML(textArea_From.value);
+            SetToLocalStorage();
         }
 
-        localStorage.setItem('input_Height',input_Height.value);
     });
-    input_Height.addEventListener('focus',(e)=>{
+    input_Height.addEventListener('focus', (e) => {
         input_Height.select();
     });
 
-    
-    textArea_From.value = localStorage.getItem('textArea_From');
-    textArea_To.value = localStorage.getItem('textArea_To');
-    input_Width.value=localStorage.getItem('input_Width');
-    input_Height.value=localStorage.getItem('input_Height');
+
+
+    //contentScript側からのメッセージを受け取るイベントハンドラ
+    browser.runtime.onMessage.addListener(function (message) {
+        if (message.command === 'sendSelectedString') {
+            //選択中の文字列があるか
+            if (message.string) {
+                textArea_From.value = message.string;
+                textArea_To.value = ConvertQiitaToHTML(textArea_From.value);
+            }
+            else {
+                textArea_From.value = localStorage.getItem('textArea_From');
+                textArea_To.value = localStorage.getItem('textArea_To');
+            }
+        }
+        else {
+            textArea_From.value = localStorage.getItem('textArea_From');
+            textArea_To.value = localStorage.getItem('textArea_To');
+        }
+
+        SetToLocalStorage();
+    });
+
+    //ここでcontentScript経由で選択中の文字列を取得する
+    browser.tabs.query({ active: true, currentWindow: true }, sendMessageToContentScript);
+
+    input_Width.value = localStorage.getItem('input_Width');
+    input_Height.value = localStorage.getItem('input_Height');
 
     textArea_From.focus();
 

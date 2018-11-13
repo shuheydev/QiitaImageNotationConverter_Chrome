@@ -1,7 +1,7 @@
 {
     "manifest_version": 2,
-    "name": "Qiita Image Size Changer",
-    "version": "1.0.0.2",
+    "name": "Qiita画像記法コンバータ",
+    "version": "1.0.0.0",
     "icons": {
         "128": "icons/searchAndHighlightIcon.png"
     },
@@ -16,8 +16,7 @@
     "content_scripts": [
         {
             "matches": [
-                "https://qiita.com/*",
-                "file:///*/*"
+                "https://qiita.com/*"
             ],
             "js": [
                 "contentScripts/scripts/contentScript.js"
